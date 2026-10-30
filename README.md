@@ -1,14 +1,13 @@
 # CristyBreathe
 
 A private personal workspace for notes, ideas, reflections, reminders and a
-gentler evening review. This app is independent of every other application in
-this repository: it has its own Worker, database, authentication configuration,
-build and tests. It does not send content to other workspaces or AI services.
+gentler evening review. This application has its own Worker, database, authentication configuration,
+build and tests, separate from unrelated projects. It does not send content to other workspaces or AI services.
 
-The reusable software is licensed under the repository's Apache License 2.0.
+The reusable software is licensed under the included Apache License 2.0.
 There are no paid software dependencies or proprietary application services.
 Cloudflare hosts the private deployment; others can fork and self-host the code.
-Names and marks remain subject to the repository's trademark notice.
+The software license does not grant rights to project names or branding.
 
 ## Local development and tests
 

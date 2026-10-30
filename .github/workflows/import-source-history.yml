@@ -1,0 +1,114 @@
+name: Prepare CristyBreathe standalone source migration
+
+# One-time source-only migration. Does not deploy or access private D1 records.
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/import-source-history.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cristybreathe-source-history-import
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout destination and preserve existing README history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch pinned public source
+        uses: actions/checkout@v4
+        with:
+          repository: anevum/anevum-web
+          ref: c81c42683cd397bebb8855f07dd56393a56e124b
+          path: .upstream-source
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: .upstream-source/apps/cristybreathe/package-lock.json
+
+      - name: Extract isolated history and audit unsafe filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C .upstream-source log --format= --name-only HEAD -- apps/cristybreathe |
+            grep -E 'apps/cristybreathe/(.env|.dev.vars|wrangler.private.jsonc|.private/)' &&
+            { echo "::error::Potential private path in source history"; exit 1; } || true
+          split_sha="$(git -C .upstream-source subtree split --prefix=apps/cristybreathe HEAD)"
+          git fetch .upstream-source "$split_sha"
+          git worktree add --detach "$RUNNER_TEMP/cristybreathe-source-check" "$split_sha"
+          test -f "$RUNNER_TEMP/cristybreathe-source-check/LICENSE"
+          test -f "$RUNNER_TEMP/cristybreathe-source-check/SECURITY.md"
+          test -f "$RUNNER_TEMP/cristybreathe-source-check/.github/workflows/ci.yml"
+          test ! -e "$RUNNER_TEMP/cristybreathe-source-check/.private"
+          test ! -e "$RUNNER_TEMP/cristybreathe-source-check/wrangler.private.jsonc"
+          echo "Isolated source commit: $split_sha"
+
+      - name: Test application with synthetic data only
+        shell: bash
+        working-directory: ${{ runner.temp }}/cristybreathe-source-check
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+          node --check dist/worker.mjs
+          npm test
+
+      - name: Prepare reviewed branch without GitHub Actions workflow writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code origin refs/heads/migration/cristybreathe-source >/dev/null 2>&1; then
+            echo "::error::Migration branch exists; refusing overwrite"
+            exit 1
+          fi
+          main_sha="$(git rev-parse refs/heads/main)"
+          source_sha="$(git -C "$RUNNER_TEMP/cristybreathe-source-check" rev-parse HEAD)"
+          git init --initial-branch=main "$RUNNER_TEMP/cristybreathe-history-safe"
+          git -C "$RUNNER_TEMP/cristybreathe-history-safe" fetch "$GITHUB_WORKSPACE" "$source_sha"
+          git -C "$RUNNER_TEMP/cristybreathe-history-safe" reset --hard FETCH_HEAD
+          FILTER_BRANCH_SQUELCH_WARNING=1 git -C "$RUNNER_TEMP/cristybreathe-history-safe" \
+            filter-branch --force --index-filter \
+            'git rm --cached -r -q --ignore-unmatch .github/workflows' \
+            --prune-empty -- main
+          filtered_sha="$(git -C "$RUNNER_TEMP/cristybreathe-history-safe" rev-parse main)"
+          if git -C "$RUNNER_TEMP/cristybreathe-history-safe" rev-list --objects main |
+               grep -Eq ' \.github/workflows/'; then
+            echo "::error::Historical workflow file still reachable"
+            exit 1
+          fi
+          git fetch "$RUNNER_TEMP/cristybreathe-history-safe" "$filtered_sha"
+          git read-tree "$filtered_sha"
+          git restore --source="$main_sha" --staged -- \
+            .github/workflows/import-source-history.yml
+          if test -n "$(git diff --cached --name-only "$main_sha" -- .github/workflows/)"; then
+            echo "::error::Migration changes workflow paths"
+            exit 1
+          fi
+          tree_sha="$(git write-tree)"
+          merge_sha="$(printf '%s\n' \
+            'Import CristyBreathe reusable public source and project history' \
+            '' \
+            'First parent: existing destination README and bootstrap workflow.' \
+            'Second parent: source project commits with workflow history excluded' \
+            'for GitHub Actions token limitations. Original source remains in' \
+            'anevum/anevum-web. No private database, Access or production deploy.' | \
+            git -c user.name='ANEVUM Repository Migration' \
+                -c user.email='devon@anevum.com' \
+                commit-tree "$tree_sha" -p "$main_sha" -p "$filtered_sha")"
+          git update-ref refs/heads/migration/cristybreathe-source "$merge_sha"
+          git push origin refs/heads/migration/cristybreathe-source
+          echo "Created guarded source-only migration branch: $merge_sha"

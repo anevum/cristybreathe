@@ -19,6 +19,6 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run build
-      - run: node --check dist/worker.mjs && node --check public/app.js
+      - run: node --check dist/worker.mjs && node --check public/app.js && node --check public/calendar.js
       - run: npm test
 # CI ONLY: never deploy a private Access/D1 application using public test config.

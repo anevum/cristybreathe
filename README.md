@@ -32,6 +32,16 @@ the harness, fixtures, generated signing keys, test records or private config.
 automated browser tests. Test captures and local SQL files live under ignored
 `.private/`. No screenshots or test database contents belong in Git.
 
+## Calendar V1 — development candidate
+
+The Calendar navigation provides private agenda, day, week and month views and supports creating, editing and cancelling all-day or timed events. Task due dates appear as reminders without duplicating records. Timed events store UTC intervals and an originating IANA time zone.
+
+This is an owner-only calendar, not a shared calendar or external provider integration. Recurrence, alerts, shared permissions, clinical appointments and automatic meeting processing are not implemented. Do not enter protected health information.
+
+**Release gates:** Back up and verify D1 recovery; inspect migration lineage and apply `migrations/0003_calendar.sql` only to the intended database once; verify existing Access policy and account isolation, both authorized accounts, and iPhone Safari. Confirm deployment ownership before any production release. Do not deploy this code against an unmigrated database. CI uses synthetic data and does not deploy.
+
+Calendar export is separate from the notes export. Calendar import/restore is not implemented; use a verified D1 backup for disaster recovery. The calendar JSON export is not a complete backup.
+
 ## Private deployment
 
 Copy `wrangler.example.jsonc` to ignored `wrangler.private.jsonc`, then set the

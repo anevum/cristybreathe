@@ -40,6 +40,7 @@ test('Kitchen: one-tap plan, cart calculations, cookbook and responsive behavior
       assert.equal(await page.getByText('STEP 1 / 4').isVisible(),true);
       await page.getByRole('button',{name:/Next step/}).click();
       assert.equal(await page.getByText('STEP 2 / 4').isVisible(),true);
+      assert.equal(await page.locator('#kt-root [style]').count(),0,'inline style would be blocked by the existing CSP');
       assert.deepEqual(errors,[]);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,'horizontal overflow at '+width);
       await page.close();

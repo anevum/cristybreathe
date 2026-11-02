@@ -72,6 +72,6 @@
   function swap(plan,index,id){assert(Number.isInteger(index)&&index>=0&&index<5,'Choose a valid dinner.');assert(recipes.some(r=>r.id===id),'Choose an available recipe.');const ids=[...plan.mealIds];ids[index]=id;return makePlan({mealIds:ids,servings:plan.servings,pantry:plan.pantry,excluded:plan.excluded,version:plan.version+1});}
   function changeServings(plan,servings){return makePlan({mealIds:plan.mealIds,servings,pantry:plan.pantry,excluded:plan.excluded,version:plan.version+1});}
   function setPantry(plan,id,have){assert(allowed.has(id),'Unknown pantry item.');return makePlan({mealIds:plan.mealIds,servings:plan.servings,pantry:have?[...new Set([...plan.pantry,id])]:plan.pantry.filter(x=>x!==id),excluded:plan.excluded,version:plan.version+1});}
-  function listText(plan){return 'THE KITCHEN — WEEKLY GROCERIES\nUnpriced draft · Verify food restrictions and pantry\nVersion '+plan.version+'\n\n'+plan.shoppingItems.map(i=>\`\${i.name}: \${i.packages} × \${i.package} (recipe needs \${i.required} \${i.unit})\`).join('\n')+'\n\nNo retailer cart has been created.';}
+  function listText(plan){return 'THE KITCHEN — WEEKLY GROCERIES\nUnpriced draft · Verify food restrictions and pantry\nVersion '+plan.version+'\n\n'+plan.shoppingItems.map(i=>`${i.name}: ${i.packages} × ${i.package} (recipe needs ${i.required} ${i.unit})`).join('\n')+'\n\nNo retailer cart has been created.';}
   scope.CristyKitchenCore=Object.freeze({ingredients,recipes,defaultMeals,makePlan,swap,changeServings,setPantry,listText});
 })(globalThis);

@@ -1,4 +1,10 @@
+<p align="center"><img src=".github/assets/readme-hero.svg" alt="Original CristyBreathe project illustration" width="100%" /></p>
+
 # CristyBreathe
+
+> **Public documentation note · November 3, 2026:** This is public reusable source for a private application, not a publicly accessible clinical records system. Authentication, client confidentiality and any deployed environment remain separate from this repository.
+
+[Security](SECURITY.md) · [Current changes](https://github.com/devonalanakins/cristybreathe/pulls)
 
 A private personal workspace for notes, ideas, reflections, reminders and a
 gentler evening review. This application has its own Worker, database, authentication configuration,
